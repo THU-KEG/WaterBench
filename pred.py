@@ -7,24 +7,126 @@ from tqdm import tqdm
 import numpy as np
 import random
 import argparse
-from llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
+# from llama_flash_attn_monkey_patch import replace_llama_attn_with_flash_attn
+from generate import Generator
+def str2bool(v):
+    """Util function for user friendly boolean flag args"""
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "longchat-v1.5-7b-32k", "xgen-7b-8k", "internlm-7b-8k", "chatglm2-6b", "chatglm2-6b-32k", "vicuna-v1.5-7b-16k"])
+    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "chatglm2-6b-32k"])
     parser.add_argument('--e', action='store_true', help="Evaluate on LongBench-E")
+    
+    # watermark args
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="old",
+        choices=["no", "old", "new", "v2", "gpt"],
+        help="Which version of the watermark to generate",
+    )
+    parser.add_argument(
+        '--initial_seed',
+        type=int,
+        default=1234,
+        help=("The initial seed to use in the blacklist randomization process.", 
+        "Is unused if the process is markov generally. Can be None."),
+        )
+
+    parser.add_argument(
+        "--dynamic_seed",
+        type=str,
+        default="markov_1",
+        choices=[None, "initial", "markov_1"],
+        help="The seeding procedure to use when sampling the blacklist at each step.",
+        )
+
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.5)
+
+    parser.add_argument(
+        "--delta",
+        type=float,
+        default=5.0)
+
+    parser.add_argument(
+        "--bl_type",
+        type=str,
+        default="soft",
+        choices=["soft", "hard"],
+        help="The type of blacklisting being performed.",
+        )
+    parser.add_argument(
+        "--num_beams",
+        type=int,
+        default=1,
+        help="The number of beams to use where '1' is no beam search.",
+        )
+    parser.add_argument(
+        "--sampling_temp",
+        type=float,
+        default=0.7,
+        help="The temperature to use when generating using multinom sampling",
+        )
+    parser.add_argument( # for gpt watermark
+        "--wm_key", 
+        type=int, 
+        default=0)
+
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=6.0)
+
+    parser.add_argument(
+        "--test_min_tokens",
+        type=int, 
+        default=2)
+
+    parser.add_argument( # for v2 watermark
+        "--seeding_scheme",
+        type=str,
+        default="simple_1",
+        help="Seeding scheme to use to generate the greenlists at each generation and verification step.",
+    )
+
+    parser.add_argument( # for v2 watermark
+        "--normalizers",
+        type=str,
+        default="",
+        help="Single or comma separated list of the preprocessors/normalizer names to use when performing watermark detection.",
+    )
+
+    parser.add_argument( # for v2 watermark
+        "--ignore_repeated_bigrams",
+        type=str2bool,
+        default=False,
+        help="Whether to use the detection method that only counts each unqiue bigram once as either a green or red hit.",
+    )
+
+    parser.add_argument( # for v2 watermark
+        "--select_green_tokens",
+        type=str2bool,
+        default=True,
+        help="How to treat the permuation when selecting the greenlist tokens at each step. Legacy is (False) to pick the complement/reds first.",
+    )
+
     return parser.parse_args(args)
 
 # This is the customized building prompt for chat models
 def build_chat(tokenizer, prompt, model_name):
     if "chatglm" in model_name:
-        prompt = tokenizer.build_prompt(prompt)
-    elif "longchat" in model_name or "vicuna" in model_name:
-        from fastchat.model import get_conversation_template
-        conv = get_conversation_template("vicuna")
-        conv.append_message(conv.roles[0], prompt)
-        conv.append_message(conv.roles[1], None)
-        prompt = conv.get_prompt()        
+        prompt = tokenizer.build_prompt(prompt)      
     elif "llama2" in model_name:
         prompt = f"[INST]{prompt}[/INST]"
     elif "xgen" in model_name:
@@ -44,8 +146,9 @@ def post_process(response, model_name):
         response = response.split("<eoa>")[0]
     return response
 
-def get_pred(model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name):
+def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name):
     preds = []
+    generator = Generator(watermark_args, tokenizer, model)
     for json_obj in tqdm(data):
         prompt = prompt_format.format(**json_obj)
         # truncate to fit max_length (we suggest truncate in the middle, since the left and right side may contain crucial instructions)
@@ -56,28 +159,18 @@ def get_pred(model, tokenizer, data, max_length, max_gen, prompt_format, dataset
         if dataset not in ["trec", "triviaqa", "samsum", "lsht", "lcc", "repobench-p"]: # chat models are better off without build prompts on these tasks
             prompt = build_chat(tokenizer, prompt, model_name)
         input = tokenizer(prompt, truncation=False, return_tensors="pt").to(device)
-        context_length = input.input_ids.shape[-1]
-        if dataset == "samsum": # prevent illegal output on samsum (model endlessly repeat "\nDialogue"), might be a prompting issue
-            output = model.generate(
-                **input,
-                max_new_tokens=max_gen,
-                num_beams=1,
-                do_sample=False,
-                temperature=1.0,
-                min_length=context_length+1,
-                eos_token_id=[tokenizer.eos_token_id, tokenizer.encode("\n", add_special_tokens=False)[-1]],
-            )[0]
-        else:
-            output = model.generate(
-                **input,
-                max_new_tokens=max_gen,
-                num_beams=1,
-                do_sample=False,
-                temperature=1.0,
-            )[0]
-        pred = tokenizer.decode(output[context_length:], skip_special_tokens=True)
+        # output = model.generate(
+        #     **input,
+        #     max_new_tokens=max_gen,
+        #     num_beams=1,
+        #     do_sample=False,
+        #     temperature=1.0,
+        # )[0]
+        completions_text, completions_tokens  = generator.generate(input_ids=input.input_ids, max_new_tokens=max_gen)
+            
+        pred = completions_text
         pred = post_process(pred, model_name)
-        preds.append({"pred": pred, "answers": json_obj["answers"], "all_classes": json_obj["all_classes"], "length": json_obj["length"]})
+        preds.append({"prompt":prompt, "pred": pred, "completions_tokens":completions_tokens, "answers": json_obj["outputs"], "all_classes": json_obj["all_classes"], "length": json_obj["length"]})
     return preds
 
 def seed_everything(seed):
@@ -92,25 +185,14 @@ def seed_everything(seed):
 def load_model_and_tokenizer(path, model_name, device):
     if "chatglm" in model_name or "internlm" in model_name or "xgen" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
-        model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True, torch_dtype=torch.bfloat16).to(device)
+        model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True,
+                                                  output_scores=True, return_dict_in_generate=True, 
+                                                  torch_dtype=torch.bfloat16).to(device)
     elif "llama2" in model_name:
-        replace_llama_attn_with_flash_attn()
+        # replace_llama_attn_with_flash_attn()
         tokenizer = LlamaTokenizer.from_pretrained(path)
-        model = LlamaForCausalLM.from_pretrained(path, torch_dtype=torch.bfloat16).to(device)
-    elif "longchat" in model_name or "vicuna" in model_name:
-        from fastchat.model import load_model
-        replace_llama_attn_with_flash_attn()
-        model, _ = load_model(
-            path,
-            device='cpu',
-            num_gpus=0,
-            load_8bit=False,
-            cpu_offloading=False,
-            debug=False,
-        )
-        model = model.to(device)
-        model = model.bfloat16()
-        tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=False)
+        model = LlamaForCausalLM.from_pretrained(path, output_scores=True, return_dict_in_generate=True, 
+                                                 torch_dtype=torch.bfloat16).to(device)
     model = model.eval()
     return model, tokenizer
 
@@ -128,31 +210,29 @@ if __name__ == '__main__':
         datasets = ["qasper", "multifieldqa_en", "hotpotqa", "2wikimqa", "gov_report", "multi_news", \
             "trec", "triviaqa", "samsum", "passage_count", "passage_retrieval_en", "lcc", "repobench-p"]
     else:
-        datasets = ["narrativeqa", "qasper", "multifieldqa_en", "multifieldqa_zh", "hotpotqa", "2wikimqa", "musique", \
-                    "dureader", "gov_report", "qmsum", "multi_news", "vcsum", "trec", "triviaqa", "samsum", "lsht", \
-                    "passage_count", "passage_retrieval_en", "passage_retrieval_zh", "lcc", "repobench-p"]
+        datasets = ["konwledge_memorization","konwledge_understanding","longform_qa",
+                        "finance_qa","hotpotqa","lcc", "multi_news", "qmsum","alpacafarm"]
     # we design specific prompt format and max generation length for each task, feel free to modify them to optimize model output
     dataset2prompt = json.load(open("config/dataset2prompt.json", "r"))
     dataset2maxlen = json.load(open("config/dataset2maxlen.json", "r"))
-    # predict on each dataset
+    dataset2level = json.load(open("config/dataset2level.json", "r"))
+    # make dir for saving predictions
     if not os.path.exists("pred"):
         os.makedirs("pred")
-    if not os.path.exists("pred_e"):
-        os.makedirs("pred_e")
+    save_dir = f"pred/{model_name}_{args.mode}_g{args.gamma}_d{args.delta}"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    # predict on each dataset
     for dataset in datasets:
-        if args.e:
-            data = load_dataset('THUDM/LongBench', f"{dataset}_e", split='test')
-            if not os.path.exists(f"pred_e/{model_name}"):
-                os.makedirs(f"pred_e/{model_name}")
-            out_path = f"pred_e/{model_name}/{dataset}.jsonl"
-        else:
-            data = load_dataset('THUDM/LongBench', dataset, split='test')
-            if not os.path.exists(f"pred/{model_name}"):
-                os.makedirs(f"pred/{model_name}")
-            out_path = f"pred/{model_name}/{dataset}.jsonl"
+        # load data
+        data = []
+        with open("data/WaterBench/{}_{}.jsonl".format(dataset2level[dataset], dataset), "r", encoding="utf-8") as f:
+            for line in f:
+                data.append(json.loads(line))       
+        out_path = os.path.join(save_dir, f"{dataset}.jsonl")
         prompt_format = dataset2prompt[dataset]
         max_gen = dataset2maxlen[dataset]
-        preds = get_pred(model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name)
+        preds = get_pred(args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name)
         with open(out_path, "w", encoding="utf-8") as f:
             for pred in preds:
                 json.dump(pred, f, ensure_ascii=False)

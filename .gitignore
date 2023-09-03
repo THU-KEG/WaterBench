@@ -6,7 +6,7 @@ data/download/
 data/models/
 # C extensions
 *.so
-
+pred/
 # Distribution / packaging
 .Python
 build/

@@ -1,0 +1,11 @@
+{
+    "konwledge_memorization" : "1-1",
+    "konwledge_understanding" : "1-2",
+    "longform_qa" : "2-1",
+    "finance_qa" : "2-2",
+    "hotpotqa" : "3-1",
+    "lcc" : "3-2",
+    "multi_news" : "4-1",
+    "qmsum" : "4-2",
+    "alpacafarm" : "5-1"
+}
