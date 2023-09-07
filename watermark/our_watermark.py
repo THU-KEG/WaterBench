@@ -1388,15 +1388,18 @@ class NewWatermarkDetector():
         
             
         green_token_count, green_token_mask = 0, []
-        print("tokenized_text is ", tokenized_text)
-        input_sequence = tokenized_text
-        prev_token = inputs[-1]
-        print("prev_token is: ", prev_token)
+        # print("tokenized_text is ", tokenized_text)
+        input_sequence = tokenized_text.tolist()[0]
+        prev_token = inputs[0][-1].item()
+        # print("prev_token is: ", prev_token)
         
         # print("len of input sequence is ", len(input_sequence))
         # print("input_sequence is ", input_sequence)
-        prev_token = input_sequence[0]
-        for idx, tok_gend in enumerate(input_sequence[1:]):
+        # prev_token = input_sequence[0]
+        # print("tokens is",tokens)
+        vocab = list(self.tokenizer.get_vocab().values())
+        all_vocabularys = torch.tensor(vocab, device=self.device)
+        for idx, tok_gend in enumerate(tokens):
             if self.dynamic_seed == "initial":
                 self.rng.manual_seed(self.hash_key*self.initial_seed)
                 
@@ -1406,20 +1409,22 @@ class NewWatermarkDetector():
             elif self.dynamic_seed == "None":
                 pass
             
-            if debug:
-                decoded_token = self.tokenizer.decode(tok_gend, skip_special_tokens=True)
-                print(f"Token generated: '{decoded_token}'")
-                print("cur token decode is: ", decoded_token)
-            
-            vocabulary_ids_tensor_temp = torch.tensor(self.tokenizer.convert_tokens_to_ids(tokens[idx]["vocabulary"]), device=self.device)
+            if tok_gend["text"] == "":
+                continue
+            tok_encoded = self.tokenizer.encode(tok_gend["text"], add_special_tokens=False)[0]
+            print("tok_encoded is", tok_encoded)
+            # if debug:
+            #     print("tok_gend is: ", tok_gend)
+            #     # decoded_token = self.tokenizer.decode(tok_gend)
+            #     print(f"Token generated: '{decoded_token}'")
+            #     print("cur token decode is: ", decoded_token)
+                
+            # print(f"tokens[{idx}] is {tokens[idx]}")
+            vocabulary_ids_tensor_temp = torch.tensor(self.tokenizer.convert_tokens_to_ids(tok_gend["vocabulary"]), device=self.device)
             print("idx is ", idx)
 
         
-            vocab = list(self.tokenizer.get_vocab().values())
-            all_vocabularys = torch.tensor(vocab, device=self.device)
-            uniques, cnt = vocabulary_ids_tensor_temp.unique(return_counts=True)
-
-            vocabulary_ids_tensor = uniques[cnt == 1]
+            vocabulary_ids_tensor, cnt = vocabulary_ids_tensor_temp.unique(return_counts=True)
             vocab_size = len(vocabulary_ids_tensor)
 
             bl_ct = int(vocab_size * self.gamma)
@@ -1427,10 +1432,6 @@ class NewWatermarkDetector():
             blacklist_ids = torch.index_select(vocabulary_ids_tensor, 0, bl_random_indices)
             #print("blacklist_ids1 is ", blacklist_ids)
             # print("blacklist_ids1_size is ", len(blacklist_ids))
-        
-            combined0 = torch.cat((vocabulary_ids_tensor, blacklist_ids))
-            uniques0, counts0 = combined0.unique(return_counts=True)
-            whitelist_ids1 = uniques0[counts0 == 1]
         
             combined = torch.cat((all_vocabularys, vocabulary_ids_tensor))
             uniques, counts = combined.unique(return_counts=True)
@@ -1457,7 +1458,7 @@ class NewWatermarkDetector():
             #else: # select green via red
             #    greenlist_ids = vocab_permutation[(self.vocab_size - greenlist_size) :]  # legacy behavior
                 
-            tok_in_ph_gl = tok_gend in posthoc_blacklist
+            tok_in_ph_gl = tok_encoded in posthoc_blacklist
             
             if tok_in_ph_gl:
                 
@@ -1467,17 +1468,15 @@ class NewWatermarkDetector():
                 green_token_count += 1
                 green_token_mask.append(True)
                 
-            if debug:
-                decoded_token = self.tokenizer.decode(tok_gend, skip_special_tokens=True)
-                print(f"Token generated: '{decoded_token}' was in the blacklist {tok_in_ph_gl}")
-                print("prev token decode is: ", decoded_token)
+            # if debug:
+                # decoded_token = self.tokenizer.decode(tok_gend, skip_special_tokens=True)
+                # print(f"Token generated: '{decoded_token}' was in the blacklist {tok_in_ph_gl}")
+                # print("prev token decode is: ", decoded_token)
             
-                
-            
-            prev_token = tok_gend
+            prev_token = tok_encoded
             print("prev_token is: ", prev_token)
         
-        z_score = self._compute_z_score(green_token_count, len(input_sequence))
+        z_score = self._compute_z_score(green_token_count, len(tokens))
         
         return z_score
 

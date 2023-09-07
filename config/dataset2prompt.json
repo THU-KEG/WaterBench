@@ -22,7 +22,7 @@
     "repobench-p": "Please complete the code given below. \n{context}{input}Next line of code:\n",
     "konwledge_memorization": "Please give answer to the following question about knowledge. Note: If there are more than one answer, print them all and separate them with a semicolon (;). Please do not give anything other than the answers. Question:\n{context}\n{input}",
     "konwledge_understanding": "Please give answer to the following question about knowledge. Note: If you are asked for true or false, just answer \"true\" or \"false\" only. If you are asked for similarity, just answer with the entity name only. Do not give anything other than the answers. Question:\n{context}\n{input}",
-    "longform_qa": "You are a helpful assistant, please answer the following question with long-form answer:\n{context}\n{input}",
-    "finance_qa": "You are a helpful assistant, please answer the following question with financial knowledge:\n{context}\n{input}",
+    "longform_qa": "You are a helpful assistant, please answer the following question within 300 words:\n{context}\n{input}",
+    "finance_qa": "You are a helpful assistant, please answer the following question with financial knowledge within 300 words:\n{context}\n{input}",
     "alpacafarm": "You are a helpful assistant, please answer the following instruction: \n{context}\n{input}"
 }

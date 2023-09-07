@@ -92,6 +92,8 @@ def parse_args(args=None):
         "--test_min_tokens",
         type=int, 
         default=2)
+    
+    
 
     parser.add_argument( # for v2 watermark
         "--seeding_scheme",
@@ -167,6 +169,8 @@ def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt
         #     temperature=1.0,
         # )[0]
         completions_text, completions_tokens  = generator.generate(input_ids=input.input_ids, max_new_tokens=max_gen)
+        
+        print("####################")
             
         pred = completions_text
         pred = post_process(pred, model_name)
@@ -182,19 +186,24 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.cuda.manual_seed_all(seed)
 
-def load_model_and_tokenizer(path, model_name, device):
+def load_model_and_tokenizer(path, model_name, device, load_token_only=False):
     if "chatglm" in model_name or "internlm" in model_name or "xgen" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
-        model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True,
+        if not load_token_only:
+            model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True,
                                                   output_scores=True, return_dict_in_generate=True, 
                                                   torch_dtype=torch.bfloat16).to(device)
     elif "llama2" in model_name:
         # replace_llama_attn_with_flash_attn()
         tokenizer = LlamaTokenizer.from_pretrained(path)
-        model = LlamaForCausalLM.from_pretrained(path, output_scores=True, return_dict_in_generate=True, 
-                                                 torch_dtype=torch.bfloat16).to(device)
-    model = model.eval()
-    return model, tokenizer
+        if not load_token_only:
+            model = LlamaForCausalLM.from_pretrained(path, output_scores=True, return_dict_in_generate=True, 
+                                                 torch_dtype=torch.bfloat16).to(device) 
+    if load_token_only:
+        return tokenizer
+    else:
+        model = model.eval()
+        return model, tokenizer
 
 if __name__ == '__main__':
     seed_everything(42)
@@ -220,11 +229,14 @@ if __name__ == '__main__':
     if not os.path.exists("pred"):
         os.makedirs("pred")
     save_dir = f"pred/{model_name}_{args.mode}_g{args.gamma}_d{args.delta}"
+    if args.bl_type == "hard":
+        save_dir = f"pred/{model_name}_{args.mode}_g{args.gamma}_d{args.delta}_hard"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     # predict on each dataset
     for dataset in datasets:
         # load data
+        print(f"{dataset} has began.........")
         data = []
         with open("data/WaterBench/{}_{}.jsonl".format(dataset2level[dataset], dataset), "r", encoding="utf-8") as f:
             for line in f:

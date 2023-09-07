@@ -17,7 +17,7 @@ class Generator():
         self.model = model # language model
         self.all_token_ids = list(tokenizer.get_vocab().values())
         self.vocab_size = len(self.all_token_ids)
-        self.bl_processor = BlacklistLogitsProcessor(tokenizer=tokenizer,
+        self.bl_processor = BlacklistLogitsProcessor(
                                             bad_words_ids=None, 
                                             eos_token_id=tokenizer.eos_token_id, 
                                             vocab=self.all_token_ids, 
@@ -27,6 +27,7 @@ class Generator():
                                             bl_type=self.bl_type, 
                                             initial_seed=self.init_seed, 
                                             dynamic_seed=self.dyna_seed)
+        self.logit_processor_lst = LogitsProcessorList([self.bl_processor])
         if args.mode == 'new': 
             self.bl_processor = OurBlacklistLogitsProcessor(tokenizer=tokenizer,
                                         bad_words_ids=None, 
@@ -111,7 +112,7 @@ class Generator():
                 
                 outputs = self.model.generate(
                     input_ids, max_new_tokens=max_new_tokens,
-                    logits_processor = self.ogit_processor_lst,
+                    logits_processor = self.logit_processor_lst,
                     do_sample=True,
                     top_k=0,
                     top_p=0.9
