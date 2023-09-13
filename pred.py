@@ -148,7 +148,7 @@ def post_process(response, model_name):
         response = response.split("<eoa>")[0]
     return response
 
-def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name):
+def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name, debug: bool = False):
     preds = []
     generator = Generator(watermark_args, tokenizer, model)
     for json_obj in tqdm(data):
@@ -169,8 +169,8 @@ def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt
         #     temperature=1.0,
         # )[0]
         completions_text, completions_tokens  = generator.generate(input_ids=input.input_ids, max_new_tokens=max_gen)
-        
-        print("####################")
+        if debug:
+            print("####################")
             
         pred = completions_text
         pred = post_process(pred, model_name)
