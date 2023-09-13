@@ -87,11 +87,11 @@ def main(args):
         for idx, cur_text in tqdm(enumerate(texts), total=len(texts)):
             #print("cur_text is:", cur_text)
             
-            gen_tokens = tokenizer.encode(cur_text, return_tensors="pt", truncation=True)
+            gen_tokens = tokenizer.encode(cur_text, return_tensors="pt", truncation=True, add_special_tokens=False)
             #print("gen_tokens is:", gen_tokens)
             prompt = prompts[idx]
             
-            input_prompt = tokenizer.encode(prompt, return_tensors="pt", truncation=True)
+            input_prompt = tokenizer.encode(prompt, return_tensors="pt", truncation=True,add_special_tokens=False)
             
             
             if len(gen_tokens[0]) >= args.test_min_tokens:

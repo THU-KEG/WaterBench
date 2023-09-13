@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 data/download/
 data/models/
+data/openai_api_key.txt
 # C extensions
 *.so
 pred/

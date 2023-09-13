@@ -884,7 +884,7 @@ class OldWatermarkDetector():
         print("prev_token0 is: ", prev_token)
         
         # prev_token = input_sequence[1]
-        for idx, tok_gend in enumerate(input_sequence[1:]):
+        for idx, tok_gend in enumerate(input_sequence):
             if self.dynamic_seed == "initial":
                 self.rng.manual_seed(self.hash_key*self.initial_seed)
                 

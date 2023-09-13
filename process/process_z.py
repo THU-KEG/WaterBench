@@ -93,7 +93,7 @@ def main(args):
                     "false_negative": [fn/sum(sums)],
                     "sum": [sum(sums)]})
             df = pd.concat([df, temp_df], ignore_index=True)
-    df = df.sort_values(by="z_score", ascending=True)     
+    df = df.sort_values(by="true_positive", ascending=True)     
     df.drop(columns=["mission_name"], inplace=True)   
     df.to_csv("z_score_avg.csv") 
             
