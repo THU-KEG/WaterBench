@@ -68,7 +68,10 @@ class WatermarkBase:
         # seed the rng using the previous tokens/prefix
         # according to the seeding_scheme
         self._seed_rng(input_ids)
-
+        
+        # print("self.vocab_size:", self.vocab_size)
+        # print("self.gamma:", self.gamma)
+        
         greenlist_size = int(self.vocab_size * self.gamma)
         vocab_permutation = torch.randperm(self.vocab_size, device=input_ids.device, generator=self.rng)
         if self.select_green_tokens: # directly

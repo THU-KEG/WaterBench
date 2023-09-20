@@ -8,3 +8,4 @@ do
   # 运行detect.py，并将日志输出到相应的文件
   nohup python detect.py --input_dir "$dir" > ./log/detect/"$ {dir##*/}".log&
 done
+

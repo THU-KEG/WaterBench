@@ -8,6 +8,7 @@ data/openai_api_key.txt
 # C extensions
 *.so
 pred/
+mutual_detect/
 # Distribution / packaging
 .Python
 build/
