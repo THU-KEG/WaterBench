@@ -7,6 +7,7 @@ data/models/
 data/openai_api_key.txt
 # C extensions
 *.so
+*.csv
 pred/
 mutual_detect/
 # Distribution / packaging

@@ -1,18 +1,25 @@
 export CUDA_VISIBLE_DEVICES=0
 
-# old watermark
-CUDA_VISIBLE_DEVICES=6 nohup python pred.py \
-    --mode old \
-    --gamma 0.25 \
-    --delta 2 \
-    --model chatglm2-6b-32k > ./log/pred/chatglm2-6b-32k/pred_old_g0.25_d2.0.log&
+# no watermark
+CUDA_VISIBLE_DEVICES=1 nohup python pred.py \
+    --mode no \
+    --gamma 0.1 \
+    --delta 10 \
+    --model tulu-7b > ./log/pred/tulu-7b/pred_no_g0.1_d10.0.log&
 
-CUDA_VISIBLE_DEVICES=7 nohup python pred.py \
+# old watermark
+CUDA_VISIBLE_DEVICES=2 nohup python pred.py \
     --mode old \
     --gamma 0.25 \
+    --delta 15 \
+    --model tulu-7b > ./log/pred/tulu-7b/pred_old_g0.25_d15.0.log&
+
+CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
+    --mode old \
+    --gamma 0.5 \
     --delta 5 \
     --bl_type hard \
-    --model chatglm2-6b-32k > ./log/pred/chatglm2-6b-32k/pred_old_g0.25_d5.0_hard.log&
+    --model tulu-7b > ./log/pred/tulu-7b/pred_old_g0.5_d5.0_hard.log&
 
 CUDA_VISIBLE_DEVICES=4 nohup python pred.py \
     --mode old \
@@ -29,28 +36,28 @@ CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
     --model llama2-7b-chat-4k > ./log/pred/pred_old_g0.5_d2.0_hard.log&
 
 # v2 watermark
-CUDA_VISIBLE_DEVICES=6 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
     --mode v2 \
     --gamma 0.25 \
     --delta 15 \
-    --model llama2-7b-chat-4k > ./log/pred/pred_v2_g0.25_d15.0.log&
+    --model tulu-7b > ./log/pred/tulu-7b/pred_v2_g0.25_d15.0.log&
 
 # gpt watermark
-CUDA_VISIBLE_DEVICES=5 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=1 nohup python pred.py \
     --mode gpt \
-    --gamma 0.25 \
-    --delta 15 \
-    --model llama2-7b-chat-4k > ./log/pred/pred_gpt_g0.25_d15.0.log&
+    --gamma 0.1 \
+    --delta 7 \
+    --model tulu-7b > ./log/pred/tulu-7b/pred_gpt_g0.1_d7.0.log&
 
 # new watermark
 # python detect.py \
 #     --input_dir ./pred/llama2-7b-chat-4k_new_g0.5_d5.0
 
-CUDA_VISIBLE_DEVICES=4 nohup python detect.py \
-    --input_dir ./pred/llama2-7b-chat-4k_old_g0.25_d15.0 > ./log/detect/detect_old_g0.25_d15.0.log&
+CUDA_VISIBLE_DEVICES=0 nohup python detect.py \
+    --input_dir ./pred/tulu-7b_old_g0.25_d15.0 > ./log/detect/tulu-7b/detect_old_g0.25_d15.0.log&
 
-CUDA_VISIBLE_DEVICES=2 nohup python detect.py \
->     --input_dir ./pred/llama2-7b-chat-4k_old_g0.1_d10.0_hard > ./log/detect/detect_old_g0.1_d10.0_hard.log&
+CUDA_VISIBLE_DEVICES=7 nohup python detect.py \
+    --input_dir ./pred/tulu-7b_v2_g0.25_d15.0 > ./log/detect/tulu-7b/detect_v2_g0.25_d15.0.log&
 
 python -m process.process_z
 

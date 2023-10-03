@@ -13,8 +13,16 @@ def parse_args(args=None):
 
 
 def main(args):
-
-    df = pd.DataFrame(columns=["model_name", "mission_name", "mode", "gamma", "delta", "threshold", "bl_type", "z_score", "true_positive", "false_negative","sum"])
+    # category: L1, L2, L3, L4, L5
+    df = pd.DataFrame(columns=["mode", "category", "true_positive", "true_negative", "result", "drop"])
+    
+    df_eval = pd.read_csv(io="./eval.csv")
+    
+    mode0 = "llama2-7b-chat-4k_no_g0.5_d5.0"
+    mode1 = "llama2-7b-chat-4k_v2_g0.25_d15.0"
+    mode2 = "llama2-7b-chat-4k_old_soft_g0.1_d10.0"
+    mode3 = "llama2-7b-chat-4k_old_hard_g0.25_d5.0"
+    mode4 = "llama2-7b-chat-4k_gpt_g0.1_d10.0"
 
     input_dir = "./pred"
     p = r"(?P<model_name>.+)_(?P<mode>old|v2|gpt|new|no)_g(?P<gamma>.+)_d(?P<delta>\d+(\.\d+)?)"
@@ -25,11 +33,7 @@ def main(args):
     for subfolder in os.listdir(input_dir):
         # print("subfolder is:", subfolder)
         matcher = re.match(p, subfolder)
-        if matcher == None:
-            continue
         model_name = matcher.group("model_name")
-        if model_name != "tulu-7b":
-            continue
         mode = matcher.group("mode")
         gamma = matcher.group("gamma")
         delta = matcher.group("delta")
@@ -43,6 +47,10 @@ def main(args):
             else:
                 bl_type = "None"
             
+        if bl_type == "hard" or bl_type == "soft":
+            final_mode = model_name + "_" + mode + "_" + bl_type + "_" + "g"+gamma + "_" + "d" + delta  
+        else:
+            final_mode = model_name + "_" + mode + "_" + "g"+gamma + "_" + "d" + delta    
             
         # print(model_name, mode, gamma, delta, bl_type)
         
@@ -61,7 +69,7 @@ def main(args):
                 matcher1 = re.match(p1, file)
                 if matcher1:
                     misson_name = matcher1.group("misson_name")
-                    threshold = 4.0
+                    threshold = 6.0
                 else:
                     threshold = file.split("_")[-2]
                 

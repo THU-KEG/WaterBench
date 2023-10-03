@@ -198,7 +198,9 @@ class BlacklistLogitsProcessor(LogitsProcessor):
         if not self.noop_blacklist:
             self.bad_words_mask = self._calc_curr_bad_word_mask(scores)
             scores = self._set_scores_to_inf_for_banned_tokens(scores)
-
+            
+        print("scores shape is", scores.shape)
+        
         return scores
 
     def _prepare_bad_words(self, bad_words_ids: List[List[int]]) -> list[int]:

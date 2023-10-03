@@ -15,8 +15,12 @@ class Generator():
         self.delta, self.bl_type, self.num_beams, self.sampling_temp = args.initial_seed, args.dynamic_seed, args.gamma, args.delta, args.bl_type, args.num_beams, args.sampling_temp
         self.tokenizer = tokenizer
         self.model = model # language model
+        
         self.all_token_ids = list(tokenizer.get_vocab().values())
         self.vocab_size = len(self.all_token_ids)
+        # if self.vocab_size != model.config.padded_vocab_size:
+        #     self.vocab_size = model.config.padded_vocab_size
+        
         self.bl_processor = BlacklistLogitsProcessor(
                                             bad_words_ids=None, 
                                             eos_token_id=tokenizer.eos_token_id, 
@@ -42,7 +46,8 @@ class Generator():
             self.logit_processor_lst = LogitsProcessorList([self.bl_processor])
             
         if args.mode == 'gpt':
-            watermark_processor = GPTWatermarkLogitsWarper(vocab_size=len(list(tokenizer.get_vocab().values())),
+            
+            watermark_processor = GPTWatermarkLogitsWarper(vocab_size=self.vocab_size,
                                                         fraction=args.gamma,
                                                         strength=args.delta)
             

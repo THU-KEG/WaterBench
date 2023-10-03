@@ -5,5 +5,7 @@
     "internlm-7b-8k": 7500,
     "chatglm2-6b": 31500,
     "chatglm2-6b-32k": 31500,
-    "vicuna-v1.5-7b-16k": 15500
+    "vicuna-v1.5-7b-16k": 15500,
+    "tulu-7b": 2048,
+    "vicuna-13b": 2048
 }

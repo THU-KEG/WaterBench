@@ -79,8 +79,8 @@ def main(args):
                         "det_mode":[det_mode],
                         "threshold": [threshold],
                         "z_score": [sum(all_z)/sum(sums)],
-                        "false_positive": [tn/sum(sums)], 
-                        "true_negative": [fp/sum(sums)],
+                        "false_positive": [fp/sum(sums)], 
+                        "true_negative": [tn/sum(sums)],
                         "sum": [sum(sums)]})
                     
                 df = pd.concat([df, temp], ignore_index=True)

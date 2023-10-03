@@ -22,7 +22,7 @@ def str2bool(v):
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "chatglm2-6b-32k"])
+    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "chatglm2-6b-32k", "tulu-7b"])
     parser.add_argument('--e', action='store_true', help="Evaluate on LongBench-E")
     
     # watermark args
@@ -139,6 +139,8 @@ def build_chat(tokenizer, prompt, model_name):
         prompt = header + f" ### Human: {prompt}\n###"
     elif "internlm" in model_name:
         prompt = f"<|User|>:{prompt}<eoh>\n<|Bot|>:"
+    elif "tulu" in model_name:
+        prompt = f"<|user|>:{prompt}\n<|assistant|>:"
     return prompt
 
 def post_process(response, model_name):
@@ -193,7 +195,7 @@ def load_model_and_tokenizer(path, model_name, device, load_token_only=False):
             model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True,
                                                   output_scores=True, return_dict_in_generate=True, 
                                                   torch_dtype=torch.bfloat16).to(device)
-    elif "llama2" in model_name:
+    elif "llama2" or "tulu" in model_name:
         # replace_llama_attn_with_flash_attn()
         tokenizer = LlamaTokenizer.from_pretrained(path)
         if not load_token_only:

@@ -16,8 +16,9 @@ class GPTWatermarkBase:
         vocab_size: The size of the vocabulary.
         watermark_key: The random seed for the green-listing.
     """
-
-    def __init__(self, fraction: float = 0.5, strength: float = 2.0, vocab_size: int = 50257, watermark_key: int = 0):
+    # llama2-7b:32000
+    # chatglm2:32000
+    def __init__(self, fraction: float = 0.5, strength: float = 2.0, vocab_size: int = 32000, watermark_key: int = 0):
         rng = np.random.default_rng(self._hash_fn(watermark_key))
         mask = np.array([True] * int(fraction * vocab_size) + [False] * (vocab_size - int(fraction * vocab_size)))
         rng.shuffle(mask)
@@ -48,8 +49,13 @@ class GPTWatermarkLogitsWarper(GPTWatermarkBase, LogitsWarper):
 
     def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor) -> torch.FloatTensor:
         """Add the watermark to the logits and return new logits."""
+        # print("green_list_mask.shape is", self.green_list_mask.shape)
+        
         watermark = self.strength * self.green_list_mask
+        # print("scores shape is", scores.shape)
+        # print("watermark shape is", watermark.shape)
         new_logits = scores + watermark.to(scores.device)
+        
         return new_logits
 
 
