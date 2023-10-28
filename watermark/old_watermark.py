@@ -70,7 +70,7 @@ class BlacklistLogitsProcessor(LogitsProcessor):
                 bl_type: str = "hard", # "soft"
                 initial_seed: int=None, 
                 dynamic_seed: str=None, # "initial", "markov_1", None
-                store_bl_ids: bool=True,
+                store_bl_ids: bool=False,
                 store_spike_ents: bool = False,
                 noop_blacklist: bool = False,
                 ):
@@ -178,10 +178,10 @@ class BlacklistLogitsProcessor(LogitsProcessor):
                 # let the rng evolve naturally - this is not a realistic setting
                 pass
             
-            print(f"now tok is {input_ids[b_idx][-1].item()}")
+            # print(f"now tok is {input_ids[b_idx][-1].item()}")
             bl_ct = int(self.vocab_size*self.bl_proportion)
             blacklist_ids = torch.randperm(self.vocab_size, device=input_ids.device, generator=self.g_cuda)[:bl_ct] # ty Yuxin :]
-            print(f"blacklist_ids[0] is {blacklist_ids[0]}")
+            # print(f"blacklist_ids[0] is {blacklist_ids[0]}")
 
             if self.store_bl_ids: 
                 if self.bl_ids is None: self.bl_ids = [[] for _ in range(input_ids.shape[0])]
@@ -199,7 +199,7 @@ class BlacklistLogitsProcessor(LogitsProcessor):
             self.bad_words_mask = self._calc_curr_bad_word_mask(scores)
             scores = self._set_scores_to_inf_for_banned_tokens(scores)
             
-        print("scores shape is", scores.shape)
+        # print("scores shape is", scores.shape)
         
         return scores
 
@@ -882,8 +882,10 @@ class OldWatermarkDetector():
         
         
         input_sequence = tokenized_text.tolist()[0]
+        
+        # print("input sequence is:", input_sequence)
         prev_token = inputs[0][-1].item()
-        print("prev_token0 is: ", prev_token)
+        # print("prev_token0 is: ", prev_token)
         
         # prev_token = input_sequence[1]
         for idx, tok_gend in enumerate(input_sequence):
@@ -896,7 +898,7 @@ class OldWatermarkDetector():
             elif self.dynamic_seed == "None":
                 pass
             
-            print("prev_token is: ", prev_token)
+            # print("prev_token is: ", prev_token)
             redlist_size = int(self.vocab_size*(1 - self.gamma))
             
             vocab_permutation = torch.randperm(self.vocab_size, device=self.device,generator=self.rng)
@@ -907,7 +909,7 @@ class OldWatermarkDetector():
             else: # select green via red
                 redlist_ids = vocab_permutation[(self.vocab_size - redlist_size):]  # legacy behavior
                 
-            print(f"len of redlist is {len(redlist_ids) }, the first is {redlist_ids[0]}")    
+            # print(f"len of redlist is {len(redlist_ids) }, the first is {redlist_ids[0]}")    
             
             tok_in_ph_gl = tok_gend in redlist_ids
             
@@ -926,5 +928,5 @@ class OldWatermarkDetector():
             
         
         z_score = self._compute_z_score(green_token_count, len(input_sequence))
-        
+        # print("z_score is:", z_score)
         return z_score

@@ -93,22 +93,41 @@ def main(args):
             
             input_prompt = tokenizer.encode(prompt, return_tensors="pt", truncation=True,add_special_tokens=False)
             
+            if "v2" in args.input_dir and len(gen_tokens[0]) >= args.test_min_tokens:
+                z_score_list.append(detector.detect(cur_text)["z_score"])
             
-            if len(gen_tokens[0]) >= args.test_min_tokens:
-                if "gpt" in args.input_dir:
-                    z_score_list.append(detector.detect(gen_tokens[0]))
-                
-                elif "v2" in args.input_dir:
-                    z_score_list.append(detector.detect(cur_text)["z_score"])
-                    
-                elif "old" in args.input_dir or "no" in args.input_dir:
+            elif len(gen_tokens[0]) >= 1:
+                if "old" in args.input_dir or "no" in args.input_dir:
+                    print("gen_tokens is:", gen_tokens)
                     z_score_list.append(detector.detect(tokenized_text=gen_tokens, inputs=input_prompt))
-                    
+                
+                elif "gpt" in args.input_dir:
+                    z_score_list.append(detector.detect(gen_tokens[0]))
                 elif "new" in args.input_dir:
                     z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
-                    
+                
+                else:   
+                    print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
+            
             else:
-                print(f"Warning: sequence {idx} is too short to test.")
+                print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
+            
+            # if len(gen_tokens[0]) >= args.test_min_tokens:
+                
+            #     if "v2" in args.input_dir:
+            #         z_score_list.append(detector.detect(cur_text)["z_score"])
+                    
+            # if len(gen_tokens[0]) >= 1:
+            #     if "old" in args.input_dir or "no" in args.input_dir:
+            #         print("gen_tokens is:", gen_tokens)
+            #         z_score_list.append(detector.detect(tokenized_text=gen_tokens, inputs=input_prompt))
+                
+            #     elif "gpt" in args.input_dir:
+            #         z_score_list.append(detector.detect(gen_tokens[0]))
+            #     elif "new" in args.input_dir:
+            #         z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
+            # else:   
+            #     print(f"Warning: sequence {idx} is too short to test.")
             
         save_dict = {
             'z_score_list': z_score_list,

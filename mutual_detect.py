@@ -128,6 +128,7 @@ def main(args):
                 lines = f.readlines()
                 
                 prompts = [json.loads(line)["prompt"] for line in lines]
+                print("len of prompts is", len(prompts))
         # read jsons
         with open(os.path.join(all_input_dir + args.detect_dir, json_file), "r") as f:
             # lines
@@ -151,19 +152,21 @@ def main(args):
             
             
             if len(gen_tokens[0]) >= args.test_min_tokens:
+                
+                if "v2" in args.reference_dir:
+                    z_score_list.append(detector.detect(cur_text)["z_score"])
+                        
+            if len(gen_tokens[0]) >= 1:
                 if "gpt" in args.reference_dir:
                     z_score_list.append(detector.detect(gen_tokens[0]))
-                
-                elif "v2" in args.reference_dir:
-                    z_score_list.append(detector.detect(cur_text)["z_score"])
                     
                 elif "old" in args.reference_dir or "no" in args.reference_dir:
                     z_score_list.append(detector.detect(tokenized_text=gen_tokens, inputs=input_prompt))
                     
                 elif "new" in args.reference_dir:
                     z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
-                    
-            else:
+            
+            else:        
                 print(f"Warning: sequence {idx} is too short to test.")
             
         save_dict = {

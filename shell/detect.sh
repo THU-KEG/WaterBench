@@ -1,32 +1,35 @@
 export CUDA_VISIBLE_DEVICES=0
 
+ps -aux |grep -v grep|grep PID_NUM
+
 # no watermark
-CUDA_VISIBLE_DEVICES=1 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
     --mode no \
     --gamma 0.1 \
     --delta 10 \
-    --model tulu-7b > ./log/pred/tulu-7b/pred_no_g0.1_d10.0.log&
+    --model internlm-7b-8k > ./log/pred/internlm-7b-8k/pred_no_g0.1_d10.0.log&
 
 # old watermark
-CUDA_VISIBLE_DEVICES=2 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
     --mode old \
-    --gamma 0.25 \
-    --delta 15 \
-    --model tulu-7b > ./log/pred/tulu-7b/pred_old_g0.25_d15.0.log&
+    --gamma 0.1 \
+    --delta 10 \
+    --dataset alpacafarm \
+    --model internlm-7b-8k >> ./log/pred/internlm-7b-8k/pred_old_g0.1_d10.0_alpacafarm.log&
 
-CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=5 nohup python pred.py \
     --mode old \
-    --gamma 0.5 \
-    --delta 5 \
+    --gamma 0.15 \
+    --delta 10 \
     --bl_type hard \
-    --model tulu-7b > ./log/pred/tulu-7b/pred_old_g0.5_d5.0_hard.log&
+    --dataset alpacafarm \
+    --model internlm-7b-8k >> ./log/pred/internlm-7b-8k/pred_old_g0.15_d10.0_hard_alpacafarm.log&
 
-CUDA_VISIBLE_DEVICES=4 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=7 nohup python pred.py \
     --mode old \
-    --gamma 0.5 \
-    --delta 5 \
-    --bl_type hard \
-    --model llama2-7b-chat-4k > ./log/pred/pred_old_g0.5_d5.0_hard.log&
+    --gamma 0.75 \
+    --delta 2 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_old_g0.75_d2.0.log&
 
 CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
     --mode old \
@@ -38,48 +41,52 @@ CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
 # v2 watermark
 CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
     --mode v2 \
-    --gamma 0.25 \
-    --delta 15 \
-    --model tulu-7b > ./log/pred/tulu-7b/pred_v2_g0.25_d15.0.log&
+    --gamma 0.9 \
+    --delta 2 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_v2_g0.9_d2.0.log&
 
 # gpt watermark
-CUDA_VISIBLE_DEVICES=1 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=4 nohup python pred.py \
     --mode gpt \
-    --gamma 0.1 \
-    --delta 7 \
-    --model tulu-7b > ./log/pred/tulu-7b/pred_gpt_g0.1_d7.0.log&
+    --gamma 0.9 \
+    --delta 2 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_gpt_g0.9_d2.0.log&
 
 # new watermark
 # python detect.py \
 #     --input_dir ./pred/llama2-7b-chat-4k_new_g0.5_d5.0
 
-CUDA_VISIBLE_DEVICES=0 nohup python detect.py \
-    --input_dir ./pred/tulu-7b_old_g0.25_d15.0 > ./log/detect/tulu-7b/detect_old_g0.25_d15.0.log&
-
 CUDA_VISIBLE_DEVICES=7 nohup python detect.py \
-    --input_dir ./pred/tulu-7b_v2_g0.25_d15.0 > ./log/detect/tulu-7b/detect_v2_g0.25_d15.0.log&
+    --input_dir ./pred/llama2-7b-chat-4k_v2_g0.75_d15.0 > ./log/detect/llama2-7b-chat-4k/detect_v2_g0.75_d15.0.log&
+
+CUDA_VISIBLE_DEVICES=5 nohup python detect.py \
+    --input_dir ./pred/llama2-7b-chat-4k_old_g0.75_d2.0 > ./log/detect/llama2-7b-chat-4k/detect_old_g0.75_d2.0.log&
+
+
+CUDA_VISIBLE_DEVICES=5 nohup python detect.py \
+    --input_dir ./pred/internlm-7b-8k_old_g0.1_d2.0 > ./log/detect/internlm-7b-8k/detect_old_g0.1_d10.0.log&
 
 python -m process.process_z
 
-CUDA_VISIBLE_DEVICES=7 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_old_g0.25_d2.0 \
-    --detect_dir llama2-7b-chat-4k_no_g0.5_d5.0 > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.25_d2.0/no_g0.5_d5.0.log&
+CUDA_VISIBLE_DEVICES=2 nohup python mutual_detect.py \
+    --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
+    --detect_dir internlm-7b-8k_no_g0.1_d10.0 > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/no_g0.1_d10.0.log&
 
-CUDA_VISIBLE_DEVICES=7 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_gpt_g0.25_d15.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_gpt_g0.25_d15.0/human_generation.log&
-
-CUDA_VISIBLE_DEVICES=6 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_v2_g0.25_d10.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_v2_g0.25_d10.0/human_generation.log&
-
-CUDA_VISIBLE_DEVICES=5 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_old_g0.25_d15.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.25_d15.0/human_generation.log&
+CUDA_VISIBLE_DEVICES=3 nohup python mutual_detect.py \
+    --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
+    --detect_dir human_generation > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/human_generation.log&
 
 CUDA_VISIBLE_DEVICES=4 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_v2_g0.25_d15.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_v2_g0.25_d15.0/human_generation.log&
+    --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
+    --detect_dir internlm-7b-8k_gpt_g0.25_d15.0 > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/gpt_g0.25_d15.0.log&
+
+CUDA_VISIBLE_DEVICES=5 nohup python mutual_detect.py \
+    --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
+    --detect_dir internlm-7b-8k_v2_g0.1_d10.0 > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/v2_g0.1_d10.0.log&
+
+CUDA_VISIBLE_DEVICES=6 nohup python mutual_detect.py \
+    --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
+    --detect_dir internlm-7b-8k_old_g0.1_d10.0 > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/old_g0.1_d10.0.log&
 
 CUDA_VISIBLE_DEVICES=3 nohup python mutual_detect.py \
     --reference_dir llama2-7b-chat-4k_gpt_g0.1_d10.0 \
@@ -118,3 +125,8 @@ CUDA_VISIBLE_DEVICES=7 nohup python mutual_detect.py \
 9,llama2-7b-chat-4k,v2,0.25,10.0,4,None,20.745836135007735,0.8752598752598753,0.12474012474012475,2405
 
 16,llama2-7b-chat-4k,old,0.25,2.0,4,soft,14.551659752574135,0.8864864864864865,0.11351351351351352,2405
+
+12,internlm-7b-8k,v2,0.1,10.0,4,None,20.651504874074814,0.9511456982274102,0.04885430177258971,2313
+14,internlm-7b-8k,old,0.15,10.0,4,hard,17.036902333801216,0.9547038327526133,0.04529616724738676,2296
+6,internlm-7b-8k,gpt,0.25,15.0,4,None,23.56013772244894,0.9677829588808817,0.03221704111911827,2359
+9,internlm-7b-8k,old,0.1,10.0,4,soft,19.758862891318824,0.969217238346526,0.030782761653474055,2274

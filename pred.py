@@ -1,6 +1,6 @@
 import os
 from datasets import load_dataset
-import torch
+import torch, gc
 import json
 from transformers import AutoTokenizer, LlamaTokenizer, LlamaForCausalLM, AutoModelForCausalLM
 from tqdm import tqdm
@@ -22,7 +22,7 @@ def str2bool(v):
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "chatglm2-6b-32k", "tulu-7b"])
+    parser.add_argument('--model', type=str, default=None, choices=["llama2-7b-chat-4k", "chatglm2-6b-32k", "tulu-7b", "internlm-7b-8k"])
     parser.add_argument('--e', action='store_true', help="Evaluate on LongBench-E")
     
     # watermark args
@@ -93,6 +93,12 @@ def parse_args(args=None):
         type=int, 
         default=2)
     
+    parser.add_argument(
+        "--start_point",
+        type=int,
+        default=0,
+    )
+    
     
 
     parser.add_argument( # for v2 watermark
@@ -121,6 +127,14 @@ def parse_args(args=None):
         type=str2bool,
         default=True,
         help="How to treat the permuation when selecting the greenlist tokens at each step. Legacy is (False) to pick the complement/reds first.",
+    )
+    
+    parser.add_argument( # for dataset
+        "--dataset",
+        type=str,
+        default="all",
+        choices=["konwledge_memorization","konwledge_understanding","longform_qa",
+                        "finance_qa","hotpotqa","lcc", "multi_news", "qmsum","alpacafarm", "all"],
     )
 
     return parser.parse_args(args)
@@ -153,7 +167,10 @@ def post_process(response, model_name):
 def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name, debug: bool = False):
     preds = []
     generator = Generator(watermark_args, tokenizer, model)
-    for json_obj in tqdm(data):
+    torch.cuda.empty_cache()
+    for json_obj in tqdm(data[watermark_args.start_point:]):
+    # for json_obj in tqdm(data[2]):
+    # json_obj = data[695]
         prompt = prompt_format.format(**json_obj)
         # truncate to fit max_length (we suggest truncate in the middle, since the left and right side may contain crucial instructions)
         tokenized_prompt = tokenizer(prompt, truncation=False, return_tensors="pt").input_ids[0]
@@ -163,20 +180,25 @@ def get_pred(watermark_args, model, tokenizer, data, max_length, max_gen, prompt
         if dataset not in ["trec", "triviaqa", "samsum", "lsht", "lcc", "repobench-p"]: # chat models are better off without build prompts on these tasks
             prompt = build_chat(tokenizer, prompt, model_name)
         input = tokenizer(prompt, truncation=False, return_tensors="pt").to(device)
-        # output = model.generate(
-        #     **input,
-        #     max_new_tokens=max_gen,
-        #     num_beams=1,
-        #     do_sample=False,
-        #     temperature=1.0,
-        # )[0]
+    # output = model.generate(
+    #     **input,
+    #     max_new_tokens=max_gen,
+    #     num_beams=1,
+    #     do_sample=False,
+    #     temperature=1.0,
+    # )[0]
         completions_text, completions_tokens  = generator.generate(input_ids=input.input_ids, max_new_tokens=max_gen)
+    # gc.collect()
+    # torch.cuda.empty_cache()
+    
+        
         if debug:
             print("####################")
             
         pred = completions_text
         pred = post_process(pred, model_name)
-        preds.append({"prompt":prompt, "pred": pred, "completions_tokens":completions_tokens, "answers": json_obj["outputs"], "all_classes": json_obj["all_classes"], "length": json_obj["length"]})
+        preds.append({"prompt":prompt, "pred": pred, "completions_tokens":completions_tokens, "answers": json_obj["outputs"], "all_classes": json_obj["all_classes"], "length":json_obj["length"]})
+        
     return preds
 
 def seed_everything(seed):
@@ -188,13 +210,14 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.cuda.manual_seed_all(seed)
 
-def load_model_and_tokenizer(path, model_name, device, load_token_only=False):
+def load_model_and_tokenizer(path, model_name, device,  load_token_only=False):
     if "chatglm" in model_name or "internlm" in model_name or "xgen" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
         if not load_token_only:
             model = AutoModelForCausalLM.from_pretrained(path, trust_remote_code=True,
                                                   output_scores=True, return_dict_in_generate=True, 
                                                   torch_dtype=torch.bfloat16).to(device)
+            model.eval()
     elif "llama2" or "tulu" in model_name:
         # replace_llama_attn_with_flash_attn()
         tokenizer = LlamaTokenizer.from_pretrained(path)
@@ -212,7 +235,15 @@ if __name__ == '__main__':
     args = parse_args()
     model2path = json.load(open("config/model2path.json", "r"))
     model2maxlen = json.load(open("config/model2maxlen.json", "r"))
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    
+    # gpu_list=[1,3,4,5,6,7]
+    # gpu_list_str = ','.join(map(str, gpu_list))
+    # os.environ.setdefault("CUDA_VISIBLE_DEVICES", gpu_list_str)
+    # device_ids = list(range(torch.cuda.device_count()))
+    # print("device_ids0 is", device_ids)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     model_name = args.model
     # define your model
     model, tokenizer = load_model_and_tokenizer(model2path[model_name], model_name, device)
@@ -236,8 +267,25 @@ if __name__ == '__main__':
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     # predict on each dataset
-    for dataset in datasets:
-        # load data
+    if args.dataset == "all":
+        for dataset in datasets:
+            # load data
+            print(f"{dataset} has began.........")
+            data = []
+            with open("data/WaterBench/{}_{}.jsonl".format(dataset2level[dataset], dataset), "r", encoding="utf-8") as f:
+                for line in f:
+                    data.append(json.loads(line))       
+            out_path = os.path.join(save_dir, f"{dataset}.jsonl")
+            prompt_format = dataset2prompt[dataset]
+            max_gen = dataset2maxlen[dataset]
+            preds = get_pred(args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name)
+            with open(out_path, "w", encoding="utf-8") as f:
+                for pred in preds:
+                    json.dump(pred, f, ensure_ascii=False)
+                    f.write('\n')
+                    
+    else:
+        dataset = args.dataset
         print(f"{dataset} has began.........")
         data = []
         with open("data/WaterBench/{}_{}.jsonl".format(dataset2level[dataset], dataset), "r", encoding="utf-8") as f:
@@ -247,7 +295,15 @@ if __name__ == '__main__':
         prompt_format = dataset2prompt[dataset]
         max_gen = dataset2maxlen[dataset]
         preds = get_pred(args, model, tokenizer, data, max_length, max_gen, prompt_format, dataset, device, model_name)
-        with open(out_path, "w", encoding="utf-8") as f:
-            for pred in preds:
-                json.dump(pred, f, ensure_ascii=False)
-                f.write('\n')
+        if os.path.exists(out_path):
+            with open(out_path, "a", encoding="utf-8") as f:
+                for pred in preds:
+                    json.dump(pred, f, ensure_ascii=False)
+                    f.write('\n')
+        else:
+            with open(out_path, "w", encoding="utf-8") as f:
+                for pred in preds:
+                    json.dump(pred, f, ensure_ascii=False)
+                    f.write('\n')
+                    
+                    

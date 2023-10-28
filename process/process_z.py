@@ -7,6 +7,7 @@ import pandas as pd
 
 def parse_args(args=None):
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=str, default="internlm-7b-8k")
     parser.add_argument('--task', type=str, default="avg")
     parser.add_argument('--threshold', type=int, default=4)
     return parser.parse_args(args)
@@ -28,7 +29,9 @@ def main(args):
         if matcher == None:
             continue
         model_name = matcher.group("model_name")
-        if model_name != "tulu-7b":
+        # if model_name != "tulu-7b":
+        if model_name != args.model:
+        # if model_name != "tulu-7b":
             continue
         mode = matcher.group("mode")
         gamma = matcher.group("gamma")
@@ -99,7 +102,40 @@ def main(args):
             df = pd.concat([df, temp_df], ignore_index=True)
     df = df.sort_values(by="true_positive", ascending=True)     
     df.drop(columns=["mission_name"], inplace=True)   
-    df.to_csv("z_score_avg.csv") 
+    
+    deltas = [2, 5, 10, 15]
+    gammas = []
+    if 'llama' in args.model: 
+        gammas = [0.1, 0.25, 0.5, 0.75, 0.9]
+    elif 'internlm' in args.model:
+        gammas = [0.1, 0.15, 0.25, 0.5, 0.75, 0.9]    
+    
+    for gamma in gammas:
+        # true_po = df[(df['bl_type'] == 'hard') & (df['gamma'] == str(gamma))]['true_positive']
+        sub_df = df[(df['bl_type'] == 'hard') & (df['gamma'] == str(gamma))]
+        
+        # print("true_po is", true_po)
+        print("len sub_df is", len(sub_df['true_positive']))
+        if len(sub_df['true_positive']) != 0:
+            print("1 point")
+            for delta in deltas:
+                if (delta not in sub_df['delta'].values):
+                    print("2 point")
+                    temp_df = pd.DataFrame({
+                    "model_name": [model_name],
+                    "mode": [mode],
+                    "gamma": [gamma],
+                    "delta":[delta],
+                    "threshold": [threshold],
+                    "bl_type": ['hard'],
+                    "z_score": [sub_df['z_score'].values[0]],
+                    "true_positive": [sub_df['true_positive'].values[0]], 
+                    "false_negative": [sub_df['false_negative'].values[0]],
+                    "sum": [sub_df['sum'].values[0]]})
+
+                    pd.concat([df, temp_df], ignore_index=True)
+        
+    df.to_csv(f"csv_data/z_score_avg_{args.model}.csv") 
             
     print(df)
     print(num)
