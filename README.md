@@ -1,2 +1,2 @@
 # WaterBench
-Data and Code for Evaluating LLM-Watermarks with WaterBench and Detector Arena
+Data and Code for the paper, WaterBench: Towards Holistic Evaluation of Watermarks for Large Language Models  

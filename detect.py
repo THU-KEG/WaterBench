@@ -31,6 +31,8 @@ def main(args):
     # get all json files
     json_files = [f for f in files if f.endswith(".jsonl")]
     os.makedirs(args.input_dir + "/z_score", exist_ok=True)
+    if args.mission != "all":
+        json_files = [f for f in files if args.mission in f]
     for json_file in json_files:
         print(f"{json_file} has began.........")
         # read jsons
@@ -93,29 +95,41 @@ def main(args):
             
             input_prompt = tokenizer.encode(prompt, return_tensors="pt", truncation=True,add_special_tokens=False)
             
-            if "v2" in args.input_dir and len(gen_tokens[0]) >= args.test_min_tokens:
-                z_score_list.append(detector.detect(cur_text)["z_score"])
             
-            elif len(gen_tokens[0]) >= 1:
-                if "old" in args.input_dir or "no" in args.input_dir:
+            # if "v2" in args.input_dir and len(gen_tokens[0]) >= args.test_min_tokens:
+            #     z_score_list.append(detector.detect(cur_text)["z_score"])
+            
+            # elif len(gen_tokens[0]) >= 1:
+            #     if "old" in args.input_dir or "no" in args.input_dir:
+            #         # print("gen_tokens is:", gen_tokens)
+            #         z_score_list.append(detector.detect(tokenized_text=gen_tokens, inputs=input_prompt))
+                
+            #     elif "gpt" in args.input_dir:
+            #         z_score_list.append(detector.detect(gen_tokens[0]))
+            #     elif "new" in args.input_dir:
+            #         z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
+                
+            #     else:   
+            #         print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
+            
+            # else:
+            #     print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
+            
+            if len(gen_tokens[0]) >= args.test_min_tokens:
+
+                if "v2" in args.input_dir:
+                    z_score_list.append(detector.detect(cur_text)["z_score"])
+                    
+                elif "old" in args.input_dir or "no" in args.input_dir:
                     print("gen_tokens is:", gen_tokens)
                     z_score_list.append(detector.detect(tokenized_text=gen_tokens, inputs=input_prompt))
                 
                 elif "gpt" in args.input_dir:
-                    z_score_list.append(detector.detect(gen_tokens[0]))
+                      z_score_list.append(detector.detect(gen_tokens[0]))
                 elif "new" in args.input_dir:
-                    z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
-                
-                else:   
-                    print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
-            
-            else:
-                print(f"Warning: sequence {idx} is too short to test. Which is ", gen_tokens[0])
-            
-            # if len(gen_tokens[0]) >= args.test_min_tokens:
-                
-            #     if "v2" in args.input_dir:
-            #         z_score_list.append(detector.detect(cur_text)["z_score"])
+                      z_score_list.append(detector.detect(tokenized_text=gen_tokens, tokens=tokens[idx], inputs=input_prompt))
+            else:   
+                print(f"Warning: sequence {idx} is too short to test.")
                     
             # if len(gen_tokens[0]) >= 1:
             #     if "old" in args.input_dir or "no" in args.input_dir:
@@ -196,6 +210,13 @@ parser.add_argument( # for v2 watermark
     type=str2bool,
     default=True,
     help="How to treat the permuation when selecting the greenlist tokens at each step. Legacy is (False) to pick the complement/reds first.",
+)
+
+parser.add_argument( 
+    "--mission",
+    type=str,
+    default="all",
+    help="mission-name",
 )
 args = parser.parse_args()
 

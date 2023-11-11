@@ -11,6 +11,10 @@ CUDA_VISIBLE_DEVICES=1 nohup python eval.py \
 CUDA_VISIBLE_DEVICES=2 nohup python eval.py \
     --input_dir ./pred/llama2-7b-chat-4k_gpt_g0.25_d15.0 > ./log/eval/detect_gpt_g0.25_d15.0.log&
 
+# gpt_g0.25_d10.0
+CUDA_VISIBLE_DEVICES=2 nohup python eval.py \
+    --input_dir ./pred/llama2-7b-chat-4k_gpt_g0.5_d10.0 > ./log/eval/detect_gpt_g0.25_d10.0.log&
+
 # old_g0.1_d10.0
 CUDA_VISIBLE_DEVICES=3 nohup python eval.py \
     --input_dir ./pred/llama2-7b-chat-4k_old_g0.1_d10.0 > ./log/eval/detect_old_g0.1_d10.0.log&
@@ -39,6 +43,18 @@ CUDA_VISIBLE_DEVICES=5 nohup python eval.py \
 CUDA_VISIBLE_DEVICES=6 nohup python eval.py \
     --input_dir ./pred/llama2-7b-chat-4k_v2_g0.25_d10.0 > ./log/eval/detect_v2_g0.25_d10.0.log&
 
+nohup python eval.py \
+    --input_dir ./pred/llama2-7b-chat-4k_old_g0.75_d15.0 > ./log/eval/detect_old_g0.75_d15.0.log&
+
+nohup python eval.py \
+  --input_dir ./pred/llama2-7b-chat-4k_old_g0.75_d5.0_hard > ./log/eval/detect_old_g0.75_d5.0_hard.log&
+  
+nohup python eval.py \
+  --input_dir ./pred/llama2-7b-chat-4k_gpt_g0.65_d12.5 > ./log/eval/detect_gpt_g0.65_d12.5.log&
+
+nohup python eval.py \
+--input_dir ./pred/llama2-7b-chat-4k_v2_g0.75_d15.0 > ./log/eval/detect_v2_g0.75_d15.0.log&
+  
 # internlm-7b-8k
 # no watermark
 CUDA_VISIBLE_DEVICES=4 nohup python eval.py \

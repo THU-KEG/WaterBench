@@ -16,7 +16,7 @@ def parse_args(args=None):
 
 def main(args):
 
-    df = pd.DataFrame(columns=["model_name", "mission_name", "mode", "gamma", "delta", "threshold", "bl_type", "z_score", "true_positive", "false_negative","sum"])
+    df = pd.DataFrame(columns=["model_name", "mode", "gamma", "delta", "threshold", "bl_type", "z_score", "true_positive", "false_negative","sum"])
 
     input_dir = "./pred"
     p = r"(?P<model_name>.+)_(?P<mode>old|v2|gpt|new|no)_g(?P<gamma>.+)_d(?P<delta>\d+(\.\d+)?)"
@@ -41,6 +41,7 @@ def main(args):
         bl_type = "None"
         bl_type = (subfolder.split("_")[-1]).split(".")[0]
         
+        print("bl_type", bl_type)
         if bl_type != "hard":
             if "old" in subfolder:
                 bl_type = "soft"
@@ -52,57 +53,67 @@ def main(args):
         
         z_score_path = os.path.join(input_dir, subfolder, "z_score")
         if os.path.exists(z_score_path):
+            
             print("subfolder is:", subfolder)
-            files = os.listdir(z_score_path)
-            temp_df = pd.DataFrame(columns=["model_name", "mission_name", "mode", "gamma", "delta", "threshold", "bl_type", "z_score", "sum"])
-            all_z = []
-            sums = []
-            tp = 0
-            fn = 0
-            for file in files:
-                # print(file)
-                # read jsons
-                matcher1 = re.match(p1, file)
-                if matcher1:
-                    misson_name = matcher1.group("misson_name")
-                    threshold = 4.0
-                else:
-                    threshold = file.split("_")[-2]
-                
-                with open(os.path.join(z_score_path, file), "r") as f:
-                    data = json.load(f)
-                # calculate tp and fn
-                threshold = args.threshold
-                z_score_list = data["z_score_list"]
-                _sum = len(data["z_score_list"])
-                tp += len([x for x in z_score_list if x > threshold])
-                # print("tp is:", tp)
-                fn += len([x for x in z_score_list if x <= threshold])
-                # print("fn is:", fn)
-                
-                # get data
-                avarage_z = data["avarage_z"]
-                all_z.append(avarage_z * _sum)
-                sums.append(_sum)
-                num += 1
+            for threshold in np.arange(0, 10, 0.1):
+                files = os.listdir(z_score_path)
+                temp_df = pd.DataFrame(columns=["model_name", "mode", "gamma", "delta", "threshold", "bl_type", "z_score", "sum"])
+                all_z = []
+                sums = []
+                tp = 0
+                fn = 0
+                for file in files:
+                    # print(file)
+                    # read jsons
+                    # matcher1 = re.match(p1, file)
+                    # if matcher1:
+                    #     misson_name = matcher1.group("misson_name")
+                        # threshold = 4.0
+                    
 
-            # average z_score
-            # print(temp_df)
-            temp_df = pd.DataFrame({
-                    "model_name": [model_name],
-                    "mode": [mode],
-                    "mission_name": [misson_name],
-                    "gamma": [gamma],
-                    "delta":[delta],
-                    "threshold": [threshold],
-                    "bl_type": [bl_type],
-                    "z_score": [sum(all_z)/sum(sums)],
-                    "true_positive": [tp/sum(sums)], 
-                    "false_negative": [fn/sum(sums)],
-                    "sum": [sum(sums)]})
-            df = pd.concat([df, temp_df], ignore_index=True)
-    df = df.sort_values(by="true_positive", ascending=True)     
-    df.drop(columns=["mission_name"], inplace=True)   
+                    with open(os.path.join(z_score_path, file), "r") as f:
+                        data = json.load(f)
+                    # calculate tp and fn
+                    # threshold = args.threshold
+                    z_score_list = data["z_score_list"]
+                    _sum = len(data["z_score_list"])
+                    tp += len([x for x in z_score_list if x > threshold])
+                    # print("tp is:", tp)
+                    fn += len([x for x in z_score_list if x <= threshold])
+                    # print("fn is:", fn)
+
+                    # get data
+                    avarage_z = data["avarage_z"]
+                    all_z.append(avarage_z * _sum)
+                    sums.append(_sum)
+                    num += 1
+
+                # average z_score
+                # print(temp_df)
+                true_positive = tp / sum(sums)
+                if bl_type == "hard":
+                    print("threshold:", threshold)
+                    print("true_positive", true_positive)
+                if true_positive >= 0.69 and true_positive <= 0.71:
+                    # if bl_type == "hard":
+                    #     print("hello1")
+                    temp_df = pd.DataFrame({
+                            "model_name": [model_name],
+                            "mode": [mode],
+                        
+                            "gamma": [gamma],
+                            "delta":[delta],
+                            "threshold": [threshold],
+                            "bl_type": [bl_type],
+                            "z_score": [sum(all_z)/sum(sums)],
+                            "true_positive": [tp/sum(sums)], 
+                            "false_negative": [fn/sum(sums)],
+                            "sum": [sum(sums)]})
+                    df = pd.concat([df, temp_df], ignore_index=True)
+                    
+    # df = df.sort_values(by="threshold", ascending=True)     
+            # df.drop(columns=["mission_name"], inplace=True)   
+    df.to_csv(f"csv_data/mod_threshold_{args.model}2.csv") 
     
     deltas = [2, 5, 10, 15]
     gammas = []
@@ -137,8 +148,8 @@ def main(args):
 
                     df = pd.concat([df, temp_df], ignore_index=True)
     
-    df = df.sort_values(by="true_positive", ascending=True)    
-    df.to_csv(f"csv_data/z_score_avg_{args.model}.csv") 
+    df = df.sort_values(by="threshold", ascending=True)    
+    df.to_csv(f"csv_data/mod_threshold_{args.model}.csv") 
             
     print(df)
     print(num)

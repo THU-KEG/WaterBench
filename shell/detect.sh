@@ -25,42 +25,43 @@ CUDA_VISIBLE_DEVICES=5 nohup python pred.py \
     --dataset alpacafarm \
     --model internlm-7b-8k >> ./log/pred/internlm-7b-8k/pred_old_g0.15_d10.0_hard_alpacafarm.log&
 
-CUDA_VISIBLE_DEVICES=7 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
     --mode old \
-    --gamma 0.75 \
-    --delta 2 \
-    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_old_g0.75_d2.0.log&
+    --gamma 0.9 \
+    --delta 15 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_old_g0.9_d15.0.log&
 
-CUDA_VISIBLE_DEVICES=0 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
     --mode old \
     --gamma 0.5 \
-    --delta 2 \
+    --delta 10 \
     --bl_type hard \
-    --model llama2-7b-chat-4k > ./log/pred/pred_old_g0.5_d2.0_hard.log&
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_old_g0.5_d10.0_hard.log&
 
 # v2 watermark
-CUDA_VISIBLE_DEVICES=3 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=4 nohup python pred.py \
     --mode v2 \
-    --gamma 0.9 \
-    --delta 2 \
-    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_v2_g0.9_d2.0.log&
+    --gamma 0.7 \
+    --delta 10 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_v2_g0.7_d10.0.log&
 
 # gpt watermark
-CUDA_VISIBLE_DEVICES=4 nohup python pred.py \
+CUDA_VISIBLE_DEVICES=5 nohup python pred.py \
     --mode gpt \
-    --gamma 0.9 \
-    --delta 2 \
-    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_gpt_g0.9_d2.0.log&
+    --gamma 0.6 \
+    --delta 10 \
+    --model llama2-7b-chat-4k > ./log/pred/llama2-7b-chat-4k/pred_gpt_g0.6_d10.0.log&
 
 # new watermark
 # python detect.py \
 #     --input_dir ./pred/llama2-7b-chat-4k_new_g0.5_d5.0
 
-CUDA_VISIBLE_DEVICES=7 nohup python detect.py \
-    --input_dir ./pred/llama2-7b-chat-4k_v2_g0.75_d15.0 > ./log/detect/llama2-7b-chat-4k/detect_v2_g0.75_d15.0.log&
+CUDA_VISIBLE_DEVICES=6 nohup python detect.py \
+    --input_dir ./pred/llama2-7b-chat-4k_gpt_g0.6_d10.0 \
+    > ./log/detect/llama2-7b-chat-4k/detect_gpt_g0.6_d10.0.log&
 
-CUDA_VISIBLE_DEVICES=5 nohup python detect.py \
-    --input_dir ./pred/llama2-7b-chat-4k_old_g0.75_d2.0 > ./log/detect/llama2-7b-chat-4k/detect_old_g0.75_d2.0.log&
+CUDA_VISIBLE_DEVICES=0 nohup python detect.py \
+    --input_dir ./pred/llama2-7b-chat-4k_gpt_g0.75_d2.0 > ./log/detect/llama2-7b-chat-4k/detect_gpt_g0.75_d2.0.log&
 
 
 CUDA_VISIBLE_DEVICES=5 nohup python detect.py \
@@ -88,21 +89,27 @@ CUDA_VISIBLE_DEVICES=6 nohup python mutual_detect.py \
     --reference_dir internlm-7b-8k_old_g0.15_d10.0_hard \
     --detect_dir internlm-7b-8k_old_g0.1_d10.0 > ./log/mutual_detect/internlm-7b-8k_old_g0.15_d10.0_hard/old_g0.1_d10.0.log&
 
-CUDA_VISIBLE_DEVICES=3 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_gpt_g0.1_d10.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_gpt_g0.1_d10.0/human_generation.log&
 
 CUDA_VISIBLE_DEVICES=2 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_old_g0.1_d10.0 \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.1_d10.0/human_generation.log&
+    --reference_dir llama2-7b-chat-4k_old_g0.75_d5.0_hard \
+    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.75_d5.0_hard/human_generation.log&
 
-CUDA_VISIBLE_DEVICES=1 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_old_g0.5_d2.0_hard \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.5_d2.0_hard/human_generation.log&
+CUDA_VISIBLE_DEVICES=3 nohup python mutual_detect.py \
+    --reference_dir llama2-7b-chat-4k_old_g0.75_d5.0_hard \
+    --detect_dir llama2-7b-chat-4k_no_g0.5_d5.0 > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.75_d5.0_hard/no_g0.5_d5.0.log&
 
-CUDA_VISIBLE_DEVICES=7 nohup python mutual_detect.py \
-    --reference_dir llama2-7b-chat-4k_old_g0.25_d5.0_hard \
-    --detect_dir human_generation > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.25_d5.0_hard/human_generation.log&
+
+CUDA_VISIBLE_DEVICES=4 nohup python mutual_detect.py \
+    --reference_dir llama2-7b-chat-4k_old_g0.75_d5.0_hard \
+    --detect_dir llama2-7b-chat-4k_v2_g0.75_d15.0 > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.75_d5.0_hard/v2_g0.75_d15.0.log&
+
+CUDA_VISIBLE_DEVICES=5 nohup python mutual_detect.py \
+    --reference_dir llama2-7b-chat-4k_old_g0.75_d5.0_hard \
+    --detect_dir llama2-7b-chat-4k_gpt_g0.65_d12.5 > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.75_d5.0_hard/gpt_g0.65_d12.5.log&
+
+CUDA_VISIBLE_DEVICES=6 nohup python mutual_detect.py \
+    --reference_dir llama2-7b-chat-4k_old_g0.75_d5.0_hard \
+    --detect_dir llama2-7b-chat-4k_old_g0.75_d15.0 > ./log/mutual_detect/llama2-7b-chat-4k_old_g0.75_d5.0_hard/old_g0.75_d15.0.log&
 
 38,llama2-7b-chat-4k,v2,0.25,15.0,4,None,22.373182046234906,0.9413477537437605,0.058652246256239604,2404
 
@@ -130,3 +137,13 @@ CUDA_VISIBLE_DEVICES=7 nohup python mutual_detect.py \
 14,internlm-7b-8k,old,0.15,10.0,4,hard,17.036902333801216,0.9547038327526133,0.04529616724738676,2296
 6,internlm-7b-8k,gpt,0.25,15.0,4,None,23.56013772244894,0.9677829588808817,0.03221704111911827,2359
 9,internlm-7b-8k,old,0.1,10.0,4,soft,19.758862891318824,0.969217238346526,0.030782761653474055,2274
+
+117,1,llama2-7b-chat-4k,gpt,0.25,10.0,7.2,,18.71845269995023,0.6999583853516438,0.3000416146483562,2403
+79,60,llama2-7b-chat-4k,v2,0.5,10.0,5.9,,10.582210243367852,0.7002079002079002,0.2997920997920998,2405
+61,31,llama2-7b-chat-4k,old,0.75,15.0,4.1000000000000005,soft,6.591574849309148,0.7006237006237006,0.2993762993762994,2405
+103,16,llama2-7b-chat-4k,old,0.5,2.0,6.800000000000001,hard,11.441775173258632,0.7014553014553014,0.2985446985446985,2405
+
+46,llama2-7b-chat-4k,v2,0.75,15.0,4,None,6.499280130272848,0.6941323345817728,0.30586766541822724,2403
+47,llama2-7b-chat-4k,gpt,0.65,12.5,4,None,7.772834851794968,0.6992512479201332,0.3007487520798669,2404
+49,llama2-7b-chat-4k,old,0.75,15.0,4,soft,6.591574849309148,0.7072765072765073,0.29272349272349274,2405
+48,llama2-7b-chat-4k,old,0.75,5.0,4,hard,6.636866991832202,0.7072765072765073,0.29272349272349274,2405

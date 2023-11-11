@@ -860,6 +860,8 @@ class OldWatermarkDetector():
     def _compute_z_score(self, observed_count, T):
         # count refers to number of green tokens, T is total number of tokens
         expected_count = self.gamma
+        print("observed_count", observed_count)
+        print("T", T)
         numer = observed_count - expected_count * T
         denom = math.sqrt(T * expected_count * (1 - expected_count))
         z = numer / denom
@@ -868,7 +870,7 @@ class OldWatermarkDetector():
     def detect(self,
                inputs: list[int]=None,
                tokenized_text: list[int]=None,
-               debug: bool=False,
+               debug: bool=True,
                return_scores: bool = True,):
         assert tokenized_text is not None, "Must pass tokenized string"
         
