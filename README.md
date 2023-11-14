@@ -30,8 +30,10 @@ dataset2prompt = json.load(open("config/dataset2prompt.json", "r"))
 dataset = "alpacafarm"
 prompt_format = dataset2prompt[dataset]
 
-prompt = prompt_format.format(**json_obj)
-# json_obj is every piece of the data
+for json_obj in tqdm(data):
+    # json_obj is every piece of the data
+    prompt = prompt_format.format(**json_obj)
+
 ```
 
 #### Data Format
