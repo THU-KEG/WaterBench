@@ -67,8 +67,8 @@ def main(args):
         else:
             mode_det += "_" + bl_type_det
 
-        print("bl_type_det is:", bl_type_det)  
-        print("mode_det is:", mode_det)    
+        # print("bl_type_det is:", bl_type_det)  
+        # print("mode_det is:", mode_det)    
     # get all files from detect_dir
     
     files = os.listdir(all_input_dir + args.detect_dir)
@@ -76,9 +76,9 @@ def main(args):
     # get all json files
     json_files = [f for f in files if f.endswith(".jsonl")]
     
-    ref_dir = f"./mutual_detect/{model_name}/ref_{mode_ref}_g{gamma_ref}_d{delta_ref}"
+    ref_dir = f"./detect_human/{model_name}/ref_{mode_ref}_g{gamma_ref}_d{delta_ref}"
     
-    os.makedirs(f"./mutual_detect/{model_name}", exist_ok=True)
+    os.makedirs(f"./detect_human/{model_name}", exist_ok=True)
     os.makedirs(ref_dir, exist_ok=True)
     if args.detect_dir == "human_generation":
           os.makedirs(ref_dir + "/human_generation_z", exist_ok=True)

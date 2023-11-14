@@ -103,16 +103,20 @@ CUDA_VISIBLE_DEVICES=0 python pred.py \
     --model llama2-7b-chat-4k \
 ```
 
+Or you can modify `shell/pred.sh` and run it directly.
+
 If you didn't specify the `--dataset`, the code will evaluate the model on all datasets in WaterBench.
 
 You can obtain the output of the model under all WaterBench datasets under the `pred/` folder corresponding to the model name.
 
-After that, run the detection code in `detect.py` to obtain z-scores:
+Then, run the detection code in `detect.py` to obtain z-scores:
 
 ``` bash
 CUDA_VISIBLE_DEVICES=0 python detect.py \
     --input_dir ./pred/llama2-7b-chat-4k_old_g0.5_d10.0_hard
 ```
+
+Or you can modify `shell/detect.sh` and run it directly.
 
 Then, you can obtain z-scores of every mission under the input_dir of detect .
 
@@ -122,6 +126,15 @@ After that, you can run the code in `eval.py` to obtain the gpt-4 evaluation res
 CUDA_VISIBLE_DEVICES=0 python eval.py \
     --input_dir ./pred/llama2-7b-chat-4k_old_g0.5_d10.0_hard
 ```
+Or you can modify `shell/eval.sh` and run it directly.
+
+To get the detection results of the model with watermarks on standard answers, you can run `detect_human.py`:
+``` bash
+CUDA_VISIBLE_DEVICES=0 python detect_human.py \
+    --reference_dir llama2-7b-chat-4k_old_g0.25_d5.0_hard \
+    --detect_dir human_generation \
+```
+Or you can modify `shell/detect_human.sh` and run it directly.
 
 Please note that in `config/`, we provide the input format suitable for each dataset and the maximum output length. Feel free to modify them to better suit the model you want to evaluate. After modification, when evaluating with `pred.py`, the data will be automatically organized according to the new format to get the corresponding model output.
 
