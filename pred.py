@@ -46,7 +46,7 @@ def parse_args(args=None):
         type=str,
         default="markov_1",
         choices=[None, "initial", "markov_1"],
-        help="The seeding procedure to use when sampling the blacklist at each step.",
+        help="The seeding procedure to use when sampling the redlist at each step.",
         )
 
     parser.add_argument(
@@ -64,7 +64,7 @@ def parse_args(args=None):
         type=str,
         default="soft",
         choices=["soft", "hard"],
-        help="The type of blacklisting being performed.",
+        help="The type of redlisting being performed.",
         )
     parser.add_argument(
         "--num_beams",
@@ -86,7 +86,7 @@ def parse_args(args=None):
     parser.add_argument(
         "--threshold",
         type=float,
-        default=6.0)
+        default=4.0)
 
     parser.add_argument(
         "--test_min_tokens",

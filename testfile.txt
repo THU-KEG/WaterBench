@@ -1,1 +1,0 @@
-<|User|>:Please give answer to the following question about knowledge. Note: If there are more than one answer, print them all and separate them with a semicolon (;). Please do not give anything other than the answers. Question:\n\nWhat is the given name of Alan B. Gaylor?<eoh>\n<|Bot|>:

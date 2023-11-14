@@ -1,1 +1,0 @@
-dev = Device(dev token__') token')  != "hard code token from tink.json')  print "fail "  token  != "hard code token from tink.json')  print "fail "  token  != "hard code token from tink.json')  print "fail
